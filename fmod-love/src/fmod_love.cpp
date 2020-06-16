@@ -88,6 +88,10 @@ bool Init(const unsigned int& outputType, const unsigned int& realChannels, cons
 		return false;
 	}
 
+#ifdef FMOD_DEBUG_LOG
+	FMOD::Debug_Initialize(FMOD_DEBUG_LEVEL_LOG, FMOD_DEBUG_MODE_FILE, 0, "fmod.log");
+#endif
+
 	return 1;
 }
 

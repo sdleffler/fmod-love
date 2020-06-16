@@ -4,18 +4,25 @@ import subprocess
 
 opts = Variables([], ARGUMENTS)
 
-# Gets the standard flags CC, CCX, etc.
-env = DefaultEnvironment()
+# In case this SConstruct is being called from another SConstruct
+# and being passed variables, check to see if we've got an environment
+# to import.
+try:
+    Import('env')
+except:
+    # Set our default environment *if* we are not being passed one.
+    # Gets the standard flags CC, CCX, etc.
+    env = DefaultEnvironment()
 
 opts.Add(EnumVariable('target', "Compilation target",
                       'debug', ['d', 'debug', 'r', 'release']))
 opts.Add(EnumVariable('platform', "Compilation platform",
-                      '', ['', 'windows', 'osx', 'linux']))
+                      None, ['', 'windows', 'osx', 'linux']))
 opts.Add(EnumVariable('p', "Compilation target, alias for 'platform'",
-                      '', ['', 'windows', 'osx', 'linux']))
+                      None, ['', 'windows', 'osx', 'linux']))
 opts.Add(BoolVariable('use_llvm', "Use the LLVM / Clang compiler", 'no'))
-opts.Add(PathVariable('fmod_api', 'The FMOD API path', '', PathVariable.PathAccept))
-opts.Add(PathVariable('target_path', 'The path where the lib is installed.', 'bin/'))
+opts.Add(PathVariable('fmod_api', 'The FMOD API path', None, PathVariable.PathIsDir))
+opts.Add(PathVariable('target_path', 'The path where the lib is installed.', '', PathVariable.PathAccept))
 opts.Add(PathVariable('target_name', 'The library name.', 'fmodlove', PathVariable.PathAccept))
 
 opts.Update(env)
@@ -24,10 +31,10 @@ if env['use_llvm']:
     env['CC'] = 'clang'
     env['CXX'] = 'clang++'
 
-if env['p'] != '':
+if 'p' in env and env['p'] != '':
     env['platform'] = env['p']
 
-if env['platform'] == '':
+if not 'platform' in env or env['platform'] == '':
     print("No valid target platform selected.")
     quit()
 
@@ -35,6 +42,8 @@ fmod_api_core_headers_path = env['fmod_api'] + "/api/core/inc/"
 fmod_api_studio_headers_path = env['fmod_api'] + "/api/studio/inc/"
 
 
+if env['target'] in ('debug', 'd'):
+    env.Append(CPPDEFINES={'FMOD_DEBUG_LOG': None})
 
 
 if env['platform'] == "osx":
@@ -142,6 +151,8 @@ elif env['platform'] == "osx" or env['platform'] == "linux":
         env.Append(LIBS=[fmod_library, fmodstudio_library])        
 
 library = env.SharedLibrary(target=env['target_path'] + env['target_name'] , source=sources)
+
+Return("library", stop=False)
 
 Default(library)
 
